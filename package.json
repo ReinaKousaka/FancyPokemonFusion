@@ -6,11 +6,13 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "start": "node server/production.js",
     "lint": "oxlint",
     "preview": "vite preview"
   },
   "dependencies": {
     "@google/genai": "^2.10.0",
+    "express": "^4.21.2",
     "react": "^19.2.7",
     "react-dom": "^19.2.7"
   },
