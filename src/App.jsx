@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import FusionCanvas, { backgroundThemes } from './components/FusionCanvas';
+import AiFusionPanel from './components/AiFusionPanel';
 import PromptSection from './components/PromptSection';
 import PartSelector from './components/PartSelector';
 import SavedGallery from './components/SavedGallery';
@@ -227,6 +228,30 @@ function App() {
     localStorage.setItem('pokemon_fusions', JSON.stringify(updatedGallery));
   };
 
+  const handleSaveAiResult = (dataUrl) => {
+    if (!dataUrl) return;
+
+    const bodyPrefix = body ? body.name.slice(0, Math.ceil(body.name.length / 2)) : 'Fusion';
+    const headSuffix = head ? head.name.slice(Math.floor(head.name.length / 2)) : '';
+    const generatedName = (bodyPrefix + headSuffix) || 'AI Fusion';
+
+    const customName = prompt('Name your AI creation:', generatedName);
+    if (customName === null) return;
+    const finalName = customName.trim() || generatedName;
+
+    const newItem = {
+      id: Date.now().toString(),
+      name: finalName,
+      thumbnail: dataUrl,
+      ai: true,
+      config: { body, head, wings, tail, color, adjustments, colorIntensity, matchAllColors, theme }
+    };
+
+    const updatedGallery = [newItem, ...gallery];
+    setGallery(updatedGallery);
+    localStorage.setItem('pokemon_fusions', JSON.stringify(updatedGallery));
+  };
+
   const handleLoadFusion = (config) => {
     setBody(config.body);
     setHead(config.head);
@@ -296,6 +321,16 @@ function App() {
             matchAllColors={matchAllColors}
             theme={theme}
             onProcessingChange={setIsProcessing}
+          />
+
+          {/* Real generative fusion via Gemini "Nano Banana" */}
+          <AiFusionPanel
+            body={body}
+            head={head}
+            wings={wings}
+            tail={tail}
+            color={color}
+            onSaveResult={handleSaveAiResult}
           />
 
           {/* Action buttons */}
