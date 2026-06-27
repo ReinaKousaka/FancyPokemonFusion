@@ -97,7 +97,12 @@ export async function handleFuse(req, res) {
       parts.push({ inlineData: { mimeType: 'image/png', data } });
     }
 
-    const chosenModel = model === 'pro' ? PRO_MODEL : model || DEFAULT_MODEL;
+    // Map the UI choice ('flash' | 'pro') to real model IDs. A raw model ID
+    // (e.g. "gemini-3.1-flash-image") is also accepted and passed through.
+    let chosenModel;
+    if (model === 'pro') chosenModel = PRO_MODEL;
+    else if (model === 'flash' || !model) chosenModel = DEFAULT_MODEL;
+    else chosenModel = model;
 
     const response = await ai.models.generateContent({
       model: chosenModel,

@@ -1,23 +1,14 @@
-import React, { useState, useEffect, useRef } from 'react';
-import FusionCanvas, { backgroundThemes } from './components/FusionCanvas';
+import React, { useState, useEffect } from 'react';
+import FusionSlots from './components/FusionSlots';
 import AiFusionPanel from './components/AiFusionPanel';
 import PromptSection from './components/PromptSection';
 import PartSelector from './components/PartSelector';
 import SavedGallery from './components/SavedGallery';
 import './App.css';
 
-const defaultAdjustments = {
-  body: { x: 0, y: 30, scale: 1.0, rotate: 0, flip: false },
-  head: { x: 0, y: -70, scale: 0.65, rotate: 0, flip: false, front: true },
-  wings: { x: 0, y: -20, scale: 0.9, rotate: 0, flip: false, front: false },
-  tail: { x: -90, y: 70, scale: 0.75, rotate: 20, flip: false, front: false }
-};
-
 function App() {
-  const canvasRef = useRef(null);
   const [pokemonList, setPokemonList] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [isProcessing, setIsProcessing] = useState(false);
 
   // Selected Pokemons for each role
   const [body, setBody] = useState(null);
@@ -26,13 +17,8 @@ function App() {
   const [tail, setTail] = useState(null);
   const [color, setColor] = useState(null);
 
-  // Layer adjustments
-  const [adjustments, setAdjustments] = useState(defaultAdjustments);
-
-  // Global settings
-  const [colorIntensity, setColorIntensity] = useState(0.85);
-  const [matchAllColors, setMatchAllColors] = useState(true);
-  const [theme, setTheme] = useState('meadow');
+  // Which role the part-selector is currently editing
+  const [activeRole, setActiveRole] = useState('body');
 
   // Saved creations list
   const [gallery, setGallery] = useState([]);
@@ -50,7 +36,6 @@ function App() {
         setLoading(false);
       });
 
-    // Load gallery from localStorage
     const saved = localStorage.getItem('pokemon_fusions');
     if (saved) {
       try {
@@ -70,34 +55,6 @@ function App() {
     else if (role === 'wings') setWings(pokemon);
     else if (role === 'tail') setTail(pokemon);
     else if (role === 'color') setColor(pokemon);
-
-    // If we select a part that was previously empty, apply defaults
-    if (pokemon) {
-      const currentVal = {
-        body,
-        head,
-        wings,
-        tail,
-        color
-      }[role];
-
-      if (!currentVal) {
-        setAdjustments(prev => ({
-          ...prev,
-          [role]: { ...defaultAdjustments[role] }
-        }));
-      }
-    }
-  };
-
-  const handleAdjustmentChange = (role, newFields) => {
-    setAdjustments(prev => ({
-      ...prev,
-      [role]: {
-        ...prev[role],
-        ...newFields
-      }
-    }));
   };
 
   const handleFuseApplied = (config) => {
@@ -106,9 +63,6 @@ function App() {
     if (config.wings !== undefined) setWings(config.wings);
     if (config.tail !== undefined) setTail(config.tail);
     if (config.color !== undefined) setColor(config.color);
-    
-    // Apply reset to positions to avoid weird layouts when parsing new Pokemons
-    setAdjustments(defaultAdjustments);
   };
 
   const handleClearAll = () => {
@@ -117,115 +71,17 @@ function App() {
     setWings(null);
     setTail(null);
     setColor(null);
-    setAdjustments(defaultAdjustments);
-    setColorIntensity(0.85);
-    setMatchAllColors(true);
-    setTheme('meadow');
   };
 
   const handleRandomize = () => {
     if (pokemonList.length === 0) return;
+    const pick = () => pokemonList[Math.floor(Math.random() * pokemonList.length)];
 
-    const getRandomPokemon = () => pokemonList[Math.floor(Math.random() * pokemonList.length)];
-
-    const rBody = getRandomPokemon();
-    const rColor = getRandomPokemon();
-    
-    // 85% chance of head, 60% chance of wings, 60% chance of tail
-    const rHead = Math.random() < 0.85 ? getRandomPokemon() : null;
-    const rWings = Math.random() < 0.60 ? getRandomPokemon() : null;
-    const rTail = Math.random() < 0.60 ? getRandomPokemon() : null;
-
-    setBody(rBody);
-    setColor(rColor);
-    setHead(rHead);
-    setWings(rWings);
-    setTail(rTail);
-
-    // Randomize offsets slightly for uniqueness
-    setAdjustments({
-      body: { 
-        x: Math.round((Math.random() - 0.5) * 40), 
-        y: Math.round(30 + (Math.random() - 0.5) * 30), 
-        scale: parseFloat((0.9 + Math.random() * 0.2).toFixed(2)), 
-        rotate: Math.round((Math.random() - 0.5) * 15), 
-        flip: Math.random() < 0.5 
-      },
-      head: { 
-        x: Math.round((Math.random() - 0.5) * 50), 
-        y: Math.round(-80 + (Math.random() - 0.5) * 40), 
-        scale: parseFloat((0.55 + Math.random() * 0.2).toFixed(2)), 
-        rotate: Math.round((Math.random() - 0.5) * 30), 
-        flip: Math.random() < 0.5,
-        front: true
-      },
-      wings: { 
-        x: Math.round((Math.random() - 0.5) * 40), 
-        y: Math.round(-20 + (Math.random() - 0.5) * 30), 
-        scale: parseFloat((0.75 + Math.random() * 0.3).toFixed(2)), 
-        rotate: Math.round((Math.random() - 0.5) * 20), 
-        flip: Math.random() < 0.5,
-        front: Math.random() < 0.2 // mostly behind
-      },
-      tail: { 
-        x: Math.round(-90 + (Math.random() - 0.5) * 40), 
-        y: Math.round(60 + (Math.random() - 0.5) * 40), 
-        scale: parseFloat((0.65 + Math.random() * 0.3).toFixed(2)), 
-        rotate: Math.round((Math.random() - 0.5) * 40), 
-        flip: Math.random() < 0.5,
-        front: Math.random() < 0.3 // mostly behind
-      }
-    });
-
-    // Randomize background theme
-    const themes = Object.keys(backgroundThemes);
-    setTheme(themes[Math.floor(Math.random() * themes.length)]);
-  };
-
-  const handleSaveGallery = () => {
-    if (!body || !canvasRef.current) return;
-
-    // Generate name based on parts
-    const bodyPrefix = body.name.slice(0, Math.ceil(body.name.length / 2));
-    const headSuffix = head ? head.name.slice(Math.floor(head.name.length / 2)) : '';
-    let fusionName = bodyPrefix + headSuffix;
-    
-    if (wings && Math.random() < 0.5) {
-      fusionName += wings.name.slice(0, 3);
-    }
-    if (tail && Math.random() < 0.5) {
-      fusionName = fusionName.slice(0, -2) + tail.name.slice(-3);
-    }
-    fusionName = fusionName.charAt(0).toUpperCase() + fusionName.slice(1).toLowerCase();
-
-    // Ask user for a custom name, otherwise use generated
-    const customName = prompt("Name your creation:", fusionName);
-    if (customName === null) return; // cancel
-    const finalName = customName.trim() || fusionName;
-
-    const dataUrl = canvasRef.current.getDataUrl();
-    if (!dataUrl) return;
-
-    const newItem = {
-      id: Date.now().toString(),
-      name: finalName,
-      thumbnail: dataUrl,
-      config: {
-        body,
-        head,
-        wings,
-        tail,
-        color,
-        adjustments,
-        colorIntensity,
-        matchAllColors,
-        theme
-      }
-    };
-
-    const updatedGallery = [newItem, ...gallery];
-    setGallery(updatedGallery);
-    localStorage.setItem('pokemon_fusions', JSON.stringify(updatedGallery));
+    setBody(pick());
+    setColor(pick());
+    setHead(Math.random() < 0.85 ? pick() : null);
+    setWings(Math.random() < 0.5 ? pick() : null);
+    setTail(Math.random() < 0.5 ? pick() : null);
   };
 
   const handleSaveAiResult = (dataUrl) => {
@@ -244,7 +100,7 @@ function App() {
       name: finalName,
       thumbnail: dataUrl,
       ai: true,
-      config: { body, head, wings, tail, color, adjustments, colorIntensity, matchAllColors, theme }
+      config: { body, head, wings, tail, color }
     };
 
     const updatedGallery = [newItem, ...gallery];
@@ -253,30 +109,17 @@ function App() {
   };
 
   const handleLoadFusion = (config) => {
-    setBody(config.body);
-    setHead(config.head);
-    setWings(config.wings);
-    setTail(config.tail);
-    setColor(config.color);
-    setAdjustments(config.adjustments);
-    setColorIntensity(config.colorIntensity);
-    setMatchAllColors(config.matchAllColors);
-    setTheme(config.theme || 'meadow');
+    setBody(config.body || null);
+    setHead(config.head || null);
+    setWings(config.wings || null);
+    setTail(config.tail || null);
+    setColor(config.color || null);
   };
 
   const handleDeleteFusion = (id) => {
     const updatedGallery = gallery.filter(item => item.id !== id);
     setGallery(updatedGallery);
     localStorage.setItem('pokemon_fusions', JSON.stringify(updatedGallery));
-  };
-
-  const handleDownload = () => {
-    if (canvasRef.current && body) {
-      const bodyPrefix = body.name.slice(0, Math.ceil(body.name.length / 2));
-      const headSuffix = head ? head.name.slice(Math.floor(head.name.length / 2)) : '';
-      const filename = `${bodyPrefix}${headSuffix}-fusion.png`.toLowerCase();
-      canvasRef.current.download(filename);
-    }
   };
 
   if (loading) {
@@ -288,40 +131,43 @@ function App() {
     );
   }
 
-  const activeThemeObj = backgroundThemes[theme] || backgroundThemes.meadow;
-
   return (
     <div className="app-container">
       {/* Header */}
       <header className="header">
         <h1>FANCY POKÉMON FUSION STUDIO</h1>
         <p>
-          Mix and match up to 5 Pokémon parts. Adjust scales, offsets, color themes, 
-          and generate custom mashups using our canvas color-blending engine or NLP text prompts.
+          Pick up to 5 Pokémon parts, then fuse them into one brand-new creature
+          with Gemini "Nano Banana" — real AI fusion, not an overlay.
         </p>
       </header>
 
       {/* Main Grid */}
       <main className="main-grid">
-        {/* Left Column: Visual Canvas Workspace */}
+        {/* Left Column: Slots + AI fusion output */}
         <section className="canvas-panel">
-          <h3 style={{ fontSize: '1rem', fontWeight: 800, color: '#fff', textTransform: 'uppercase', letterSpacing: '0.1em', margin: '0 0 8px 0', textAlign: 'center' }}>
-            🧪 Workspace Arena
-          </h3>
+          <h3 className="workspace-heading">🧪 Fusion Slots</h3>
 
-          <FusionCanvas
-            ref={canvasRef}
+          <FusionSlots
             body={body}
             head={head}
             wings={wings}
             tail={tail}
             color={color}
-            adjustments={adjustments}
-            colorIntensity={colorIntensity}
-            matchAllColors={matchAllColors}
-            theme={theme}
-            onProcessingChange={setIsProcessing}
+            activeRole={activeRole}
+            onSelectRole={setActiveRole}
+            onClear={(role) => handleSelectPokemon(role, null)}
           />
+
+          {/* Action buttons */}
+          <div className="canvas-actions">
+            <button type="button" onClick={handleRandomize} className="action-btn" title="Pick random Pokemons">
+              🎲 Randomize All
+            </button>
+            <button type="button" onClick={handleClearAll} className="action-btn" title="Clear all slots">
+              🧹 Clear Slots
+            </button>
+          </div>
 
           {/* Real generative fusion via Gemini "Nano Banana" */}
           <AiFusionPanel
@@ -332,75 +178,15 @@ function App() {
             color={color}
             onSaveResult={handleSaveAiResult}
           />
-
-          {/* Action buttons */}
-          <div className="canvas-actions">
-            <button
-              type="button"
-              onClick={handleRandomize}
-              className="action-btn"
-              title="Fuse completely random Pokemons"
-            >
-              🎲 Randomize All
-            </button>
-            <button
-              type="button"
-              onClick={handleClearAll}
-              className="action-btn"
-              title="Clear all selected Pokemons"
-            >
-              🧹 Clear Arena
-            </button>
-            <button
-              type="button"
-              onClick={handleSaveGallery}
-              disabled={!body || isProcessing}
-              className="action-btn"
-              title="Save to local collection"
-            >
-              💾 Save Creation
-            </button>
-            <button
-              type="button"
-              onClick={handleDownload}
-              disabled={!body || isProcessing}
-              className="action-btn primary"
-              title="Download fusion image"
-            >
-              📥 Download PNG
-            </button>
-          </div>
-
-          {/* Arena Background Theme Selector */}
-          <div className="theme-selector">
-            <label className="theme-selector-label">
-              🏟️ Battle Arena Background
-            </label>
-            <div className="theme-selector-grid">
-              {Object.entries(backgroundThemes).map(([key, value]) => (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => setTheme(key)}
-                  className={`theme-btn ${theme === key ? 'active' : ''}`}
-                >
-                  <span className="text-lg">{value.particles}</span>
-                  <span>{value.name}</span>
-                </button>
-              ))}
-            </div>
-          </div>
         </section>
 
         {/* Right Column: Customizers, Text Prompts, and Gallery */}
         <section className="controls-container">
-          {/* Prompt Parsing Section */}
           <PromptSection
             pokemonList={pokemonList}
             onFuseApplied={handleFuseApplied}
           />
 
-          {/* Parts Selection & Control Panel */}
           <PartSelector
             pokemonList={pokemonList}
             body={body}
@@ -408,16 +194,11 @@ function App() {
             wings={wings}
             tail={tail}
             color={color}
-            adjustments={adjustments}
-            colorIntensity={colorIntensity}
-            matchAllColors={matchAllColors}
+            activeTab={activeRole}
+            onTabChange={setActiveRole}
             onSelectPokemon={handleSelectPokemon}
-            onAdjustmentChange={handleAdjustmentChange}
-            onColorIntensityChange={setColorIntensity}
-            onMatchAllColorsChange={setMatchAllColors}
           />
 
-          {/* Gallery Grid */}
           <SavedGallery
             gallery={gallery}
             onLoadFusion={handleLoadFusion}
@@ -429,7 +210,7 @@ function App() {
       {/* Footer */}
       <footer className="footer">
         <p>
-          Fancy Pokémon Fusion Studio &bull; Built with React &amp; HTML5 Canvas &bull; High Resolution resources powered by{' '}
+          Fancy Pokémon Fusion Studio &bull; Built with React &amp; Gemini Nano Banana &bull; Sprites from{' '}
           <a href="https://pokeapi.co/" target="_blank" rel="noopener noreferrer">
             PokeAPI
           </a>
