@@ -138,7 +138,7 @@ function App() {
         <h1>FANCY POKÉMON FUSION STUDIO</h1>
         <p>
           Pick up to 5 Pokémon parts, then fuse them into one brand-new creature
-          with Gemini "Nano Banana" — real AI fusion, not an overlay.
+          with Gemini "Nano Banana".
         </p>
       </header>
 
