@@ -14,8 +14,8 @@ if (!fs.existsSync(POKEMON_DIR)) {
   fs.mkdirSync(POKEMON_DIR);
 }
 
-// List of the first 151 Pokemon IDs
-const POKEMON_IDS = Array.from({ length: 151 }, (_, i) => i + 1);
+// List of the first 493 Pokemon IDs (Generation 1 to Generation 4)
+const POKEMON_IDS = Array.from({ length: 493 }, (_, i) => i + 1);
 
 async function downloadImage(url, filepath) {
   const response = await fetch(url);
@@ -48,7 +48,7 @@ async function fetchPokemonData(id) {
 }
 
 async function run() {
-  console.log('Starting Pokemon metadata and image download (151 Pokemons)...');
+  console.log('Starting Pokemon metadata and image download (493 Pokemons)...');
   const pokemonList = [];
   
   // We can fetch in chunks to avoid rate limiting or overwhelming network
@@ -62,13 +62,17 @@ async function run() {
         const metadata = await fetchPokemonData(id);
         const imagePath = path.join(POKEMON_DIR, `${id}.png`);
         
-        // Download the high-res image
-        await downloadImage(metadata.artworkUrl, imagePath);
+        // Skip downloading if the high-res image already exists locally
+        if (!fs.existsSync(imagePath)) {
+          await downloadImage(metadata.artworkUrl, imagePath);
+          console.log(`Successfully downloaded #${id} ${metadata.name}`);
+        } else {
+          console.log(`Skipped download for #${id} ${metadata.name} (already exists)`);
+        }
         
         // Remove raw artworkUrl to keep local references
         delete metadata.artworkUrl;
         pokemonList.push(metadata);
-        console.log(`Successfully downloaded #${id} ${metadata.name}`);
       } catch (err) {
         console.error(`Error downloading Pokemon #${id}:`, err.message);
       }

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { parsePrompt } from '../utils/promptParser';
 
 const presetPrompts = [
+  "Piplup head on Snorlax body with Charizard wings",
   "Pikachu head on Charizard body with Mewtwo colors",
   "A Blastoise body with Caterpie head and Pikachu tail",
   "Gengar body, Mewtwo head, in Jolteon color with Zapdos wings",
